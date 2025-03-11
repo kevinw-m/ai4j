@@ -130,9 +130,10 @@ public class OpenAiChatService implements IChatService {
     }
 
     @Override
-    public void chatCompletionStream(String baseUrl, String apiKey, ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
+    public void chatCompletionStream(String baseUrl, String apiKey, String chatCompletionUrl, ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
         if(baseUrl == null || "".equals(baseUrl)) baseUrl = openAiConfig.getApiHost();
         if(apiKey == null || "".equals(apiKey)) apiKey = openAiConfig.getApiKey();
+        if(chatCompletionUrl == null || "".equals(chatCompletionUrl)) chatCompletionUrl = openAiConfig.getChatCompletionUrl();
         chatCompletion.setStream(true);
         StreamOptions streamOptions = chatCompletion.getStreamOptions();
         if(streamOptions == null){
@@ -159,7 +160,7 @@ public class OpenAiChatService implements IChatService {
 
             Request request = new Request.Builder()
                     .header("Authorization", "Bearer " + apiKey)
-                    .url(ValidateUtil.concatUrl(baseUrl, openAiConfig.getChatCompletionUrl()))
+                    .url(ValidateUtil.concatUrl(baseUrl, chatCompletionUrl))
                     .post(RequestBody.create(MediaType.parse(Constants.APPLICATION_JSON), jsonString))
                     .build();
 
@@ -197,6 +198,6 @@ public class OpenAiChatService implements IChatService {
 
     @Override
     public void chatCompletionStream(ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
-        chatCompletionStream(null, null, chatCompletion, eventSourceListener);
+        chatCompletionStream(null, null, null, chatCompletion, eventSourceListener);
     }
 }

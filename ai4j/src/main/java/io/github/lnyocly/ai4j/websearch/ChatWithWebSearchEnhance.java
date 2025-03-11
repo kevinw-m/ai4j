@@ -43,8 +43,8 @@ public class ChatWithWebSearchEnhance implements IChatService {
     }
 
     @Override
-    public void chatCompletionStream(String baseUrl, String apiKey, ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
-        chatService.chatCompletionStream(baseUrl, apiKey, addWebSearchResults(chatCompletion), eventSourceListener);
+    public void chatCompletionStream(String baseUrl, String apiKey, String chatCompletionUrl, ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
+        chatService.chatCompletionStream(baseUrl, apiKey, chatCompletionUrl, addWebSearchResults(chatCompletion), eventSourceListener);
     }
 
     @Override

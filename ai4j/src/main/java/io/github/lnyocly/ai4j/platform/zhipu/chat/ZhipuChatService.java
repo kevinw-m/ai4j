@@ -146,9 +146,10 @@ public class ZhipuChatService implements IChatService, ParameterConvert<ZhipuCha
     }
 
     @Override
-    public void chatCompletionStream(String baseUrl, String apiKey, ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
+    public void chatCompletionStream(String baseUrl, String apiKey, String chatCompletionUrl, ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
         if(baseUrl == null || "".equals(baseUrl)) baseUrl = zhipuConfig.getApiHost();
         if(apiKey == null || "".equals(apiKey)) apiKey = zhipuConfig.getApiKey();
+        if(chatCompletionUrl == null || "".equals(chatCompletionUrl)) chatCompletionUrl = zhipuConfig.getChatCompletionUrl();
         chatCompletion.setStream(true);
 
 
@@ -174,7 +175,7 @@ public class ZhipuChatService implements IChatService, ParameterConvert<ZhipuCha
 
             Request request = new Request.Builder()
                     .header("Authorization", "Bearer " + token)
-                    .url(ValidateUtil.concatUrl(baseUrl, zhipuConfig.getChatCompletionUrl()))
+                    .url(ValidateUtil.concatUrl(baseUrl, chatCompletionUrl))
                     .post(RequestBody.create(MediaType.parse(Constants.APPLICATION_JSON), jsonString))
                     .build();
 
@@ -215,7 +216,7 @@ public class ZhipuChatService implements IChatService, ParameterConvert<ZhipuCha
 
     @Override
     public void chatCompletionStream(ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
-        this.chatCompletionStream(null, null, chatCompletion, eventSourceListener);
+        this.chatCompletionStream(null, null, null, chatCompletion, eventSourceListener);
     }
 
     @Override

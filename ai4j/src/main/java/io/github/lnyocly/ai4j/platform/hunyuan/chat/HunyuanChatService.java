@@ -290,7 +290,7 @@ public class HunyuanChatService implements IChatService, ParameterConvert<Hunyua
     }
 
     @Override
-    public void chatCompletionStream(String baseUrl, String apiKey, ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
+    public void chatCompletionStream(String baseUrl, String apiKey, String chatCompletionUrl, ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
         if(baseUrl == null || "".equals(baseUrl)) baseUrl = hunyuanConfig.getApiHost();
         if(apiKey == null || "".equals(apiKey)) apiKey = hunyuanConfig.getApiKey();
         chatCompletion.setStream(true);
@@ -415,6 +415,6 @@ public class HunyuanChatService implements IChatService, ParameterConvert<Hunyua
 
     @Override
     public void chatCompletionStream(ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
-        this.chatCompletionStream(null, null, chatCompletion, eventSourceListener);
+        this.chatCompletionStream(null, null, null, chatCompletion, eventSourceListener);
     }
 }

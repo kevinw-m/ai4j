@@ -335,9 +335,10 @@ public class OllamaAiChatService implements IChatService, ParameterConvert<Ollam
     }
 
     @Override
-    public void chatCompletionStream(String baseUrl, String apiKey, ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
+    public void chatCompletionStream(String baseUrl, String apiKey, String chatCompletionUrl, ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
         if(baseUrl == null || "".equals(baseUrl)) baseUrl = ollamaConfig.getApiHost();
         if(apiKey == null || "".equals(apiKey)) apiKey = ollamaConfig.getApiKey();
+        if(chatCompletionUrl == null || "".equals(chatCompletionUrl)) chatCompletionUrl = ollamaConfig.getChatCompletionUrl();
         chatCompletion.setStream(true);
 
         // 转换 请求参数
@@ -382,7 +383,7 @@ public class OllamaAiChatService implements IChatService, ParameterConvert<Ollam
             requestString = JSON.toJSONString(jsonObject);
 
             Request.Builder builder = new Request.Builder()
-                    .url(ValidateUtil.concatUrl(baseUrl, ollamaConfig.getChatCompletionUrl()))
+                    .url(ValidateUtil.concatUrl(baseUrl, chatCompletionUrl))
                     .post(RequestBody.create(MediaType.parse(Constants.JSON_CONTENT_TYPE), requestString));
 
             if(StringUtils.isNotBlank(apiKey)) {
@@ -433,6 +434,6 @@ public class OllamaAiChatService implements IChatService, ParameterConvert<Ollam
 
     @Override
     public void chatCompletionStream(ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
-        this.chatCompletionStream(null, null, chatCompletion, eventSourceListener);
+        this.chatCompletionStream(null, null, null, chatCompletion, eventSourceListener);
     }
 }

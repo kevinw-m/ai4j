@@ -16,7 +16,7 @@ public interface IChatService {
 
     ChatCompletionResponse chatCompletion(String baseUrl, String apiKey, ChatCompletion chatCompletion) throws Exception;
     ChatCompletionResponse chatCompletion(ChatCompletion chatCompletion) throws Exception;
-    void chatCompletionStream(String baseUrl, String apiKey, ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception;
+    void chatCompletionStream(String baseUrl, String apiKey, String chatCompletionUrl, ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception;
     void chatCompletionStream(ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception;
 
 }
