@@ -150,68 +150,7 @@ public class ZhipuChatService implements IChatService, ParameterConvert<ZhipuCha
         if(baseUrl == null || "".equals(baseUrl)) baseUrl = zhipuConfig.getApiHost();
         if(apiKey == null || "".equals(apiKey)) apiKey = zhipuConfig.getApiKey();
         if(chatCompletionUrl == null || "".equals(chatCompletionUrl)) chatCompletionUrl = zhipuConfig.getChatCompletionUrl();
-        chatCompletion.setStream(true);
-
-
-        // 根据key获取token
-        String token = BearerTokenUtils.getToken(apiKey);
-
-        // 转换 请求参数
-        ZhipuChatCompletion zhipuChatCompletion = this.convertChatCompletionObject(chatCompletion);
-
-        // 如含有function，则添加tool
-        if(zhipuChatCompletion.getFunctions()!=null && !zhipuChatCompletion.getFunctions().isEmpty()){
-            List<Tool> tools = ToolUtil.getAllFunctionTools(zhipuChatCompletion.getFunctions());
-            zhipuChatCompletion.setTools(tools);
-        }
-
-        String finishReason = "first";
-
-        while("first".equals(finishReason) || "tool_calls".equals(finishReason)){
-
-            finishReason = null;
-            ObjectMapper mapper = new ObjectMapper();
-            String jsonString = mapper.writeValueAsString(zhipuChatCompletion);
-
-            Request request = new Request.Builder()
-                    .header("Authorization", "Bearer " + token)
-                    .url(ValidateUtil.concatUrl(baseUrl, chatCompletionUrl))
-                    .post(RequestBody.create(MediaType.parse(Constants.APPLICATION_JSON), jsonString))
-                    .build();
-
-
-            factory.newEventSource(request, convertEventSource(eventSourceListener));
-            eventSourceListener.getCountDownLatch().await();
-
-            finishReason = eventSourceListener.getFinishReason();
-            List<ToolCall> toolCalls = eventSourceListener.getToolCalls();
-
-            // 需要调用函数
-            if("tool_calls".equals(finishReason) && !toolCalls.isEmpty()){
-                // 创建tool响应消息
-                ChatMessage responseMessage = ChatMessage.withAssistant(eventSourceListener.getToolCalls());
-
-                List<ChatMessage> messages = new ArrayList<>(zhipuChatCompletion.getMessages());
-                messages.add(responseMessage);
-
-                // 封装tool结果消息
-                for (ToolCall toolCall : toolCalls) {
-                    String functionName = toolCall.getFunction().getName();
-                    String arguments = toolCall.getFunction().getArguments();
-                    String functionResponse = ToolUtil.invoke(functionName, arguments);
-
-                    messages.add(ChatMessage.withTool(functionResponse, toolCall.getId()));
-                }
-                eventSourceListener.setToolCalls(new ArrayList<>());
-                eventSourceListener.setToolCall(null);
-                zhipuChatCompletion.setMessages(messages);
-            }
-
-        }
-
-        // 补全原始请求
-        chatCompletion.setMessages(zhipuChatCompletion.getMessages());
-        chatCompletion.setTools(zhipuChatCompletion.getTools());
+        this.chatCompletionStream(ValidateUtil.concatUrl(baseUrl, chatCompletionUrl), apiKey, chatCompletion, eventSourceListener);
     }
 
     @Override
@@ -289,5 +228,72 @@ public class ZhipuChatService implements IChatService, ParameterConvert<ZhipuCha
         chatCompletionResponse.setChoices(zhipuChatCompletionResponse.getChoices());
         chatCompletionResponse.setUsage(zhipuChatCompletionResponse.getUsage());
         return chatCompletionResponse;
+    }
+
+    @Override
+    public void chatCompletionStream(String apiUrl, String apiKey, ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
+
+        chatCompletion.setStream(true);
+
+
+        // 根据key获取token
+        String token = BearerTokenUtils.getToken(apiKey);
+
+        // 转换 请求参数
+        ZhipuChatCompletion zhipuChatCompletion = this.convertChatCompletionObject(chatCompletion);
+
+        // 如含有function，则添加tool
+        if(zhipuChatCompletion.getFunctions()!=null && !zhipuChatCompletion.getFunctions().isEmpty()){
+            List<Tool> tools = ToolUtil.getAllFunctionTools(zhipuChatCompletion.getFunctions());
+            zhipuChatCompletion.setTools(tools);
+        }
+
+        String finishReason = "first";
+
+        while("first".equals(finishReason) || "tool_calls".equals(finishReason)){
+
+            finishReason = null;
+            ObjectMapper mapper = new ObjectMapper();
+            String jsonString = mapper.writeValueAsString(zhipuChatCompletion);
+
+            Request request = new Request.Builder()
+                    .header("Authorization", "Bearer " + token)
+                    .url(apiUrl)
+                    .post(RequestBody.create(MediaType.parse(Constants.APPLICATION_JSON), jsonString))
+                    .build();
+
+
+            factory.newEventSource(request, convertEventSource(eventSourceListener));
+            eventSourceListener.getCountDownLatch().await();
+
+            finishReason = eventSourceListener.getFinishReason();
+            List<ToolCall> toolCalls = eventSourceListener.getToolCalls();
+
+            // 需要调用函数
+            if("tool_calls".equals(finishReason) && !toolCalls.isEmpty()){
+                // 创建tool响应消息
+                ChatMessage responseMessage = ChatMessage.withAssistant(eventSourceListener.getToolCalls());
+
+                List<ChatMessage> messages = new ArrayList<>(zhipuChatCompletion.getMessages());
+                messages.add(responseMessage);
+
+                // 封装tool结果消息
+                for (ToolCall toolCall : toolCalls) {
+                    String functionName = toolCall.getFunction().getName();
+                    String arguments = toolCall.getFunction().getArguments();
+                    String functionResponse = ToolUtil.invoke(functionName, arguments);
+
+                    messages.add(ChatMessage.withTool(functionResponse, toolCall.getId()));
+                }
+                eventSourceListener.setToolCalls(new ArrayList<>());
+                eventSourceListener.setToolCall(null);
+                zhipuChatCompletion.setMessages(messages);
+            }
+
+        }
+
+        // 补全原始请求
+        chatCompletion.setMessages(zhipuChatCompletion.getMessages());
+        chatCompletion.setTools(zhipuChatCompletion.getTools());
     }
 }

@@ -103,9 +103,6 @@ public class DeepSeekChatService implements IChatService, ParameterConvert<DeepS
                 }
 
 
-
-
-
                 eventSourceListener.onEvent(eventSource, id, type, s);
             }
 
@@ -131,8 +128,8 @@ public class DeepSeekChatService implements IChatService, ParameterConvert<DeepS
 
     @Override
     public ChatCompletionResponse chatCompletion(String baseUrl, String apiKey, ChatCompletion chatCompletion) throws Exception {
-        if(baseUrl == null || "".equals(baseUrl)) baseUrl = deepSeekConfig.getApiHost();
-        if(apiKey == null || "".equals(apiKey)) apiKey = deepSeekConfig.getApiKey();
+        if (baseUrl == null || "".equals(baseUrl)) baseUrl = deepSeekConfig.getApiHost();
+        if (apiKey == null || "".equals(apiKey)) apiKey = deepSeekConfig.getApiKey();
         chatCompletion.setStream(false);
         chatCompletion.setStreamOptions(null);
 
@@ -141,7 +138,7 @@ public class DeepSeekChatService implements IChatService, ParameterConvert<DeepS
 
 
         // 如含有function，则添加tool
-        if(deepSeekChatCompletion.getFunctions()!=null && !deepSeekChatCompletion.getFunctions().isEmpty()){
+        if (deepSeekChatCompletion.getFunctions() != null && !deepSeekChatCompletion.getFunctions().isEmpty()) {
             List<Tool> tools = ToolUtil.getAllFunctionTools(deepSeekChatCompletion.getFunctions());
             deepSeekChatCompletion.setTools(tools);
         }
@@ -151,7 +148,7 @@ public class DeepSeekChatService implements IChatService, ParameterConvert<DeepS
 
         String finishReason = "first";
 
-        while("first".equals(finishReason) || "tool_calls".equals(finishReason)){
+        while ("first".equals(finishReason) || "tool_calls".equals(finishReason)) {
 
             finishReason = null;
 
@@ -167,7 +164,7 @@ public class DeepSeekChatService implements IChatService, ParameterConvert<DeepS
                     .build();
 
             Response execute = okHttpClient.newCall(request).execute();
-            if (execute.isSuccessful() && execute.body() != null){
+            if (execute.isSuccessful() && execute.body() != null) {
 
                 DeepSeekChatCompletionResponse deepSeekChatCompletionResponse = mapper.readValue(execute.body().string(), DeepSeekChatCompletionResponse.class);
 
@@ -180,7 +177,7 @@ public class DeepSeekChatService implements IChatService, ParameterConvert<DeepS
                 allUsage.setPromptTokens(allUsage.getPromptTokens() + usage.getPromptTokens());
 
                 // 判断是否为函数调用返回
-                if("tool_calls".equals(finishReason)){
+                if ("tool_calls".equals(finishReason)) {
                     ChatMessage message = choice.getMessage();
                     List<ToolCall> toolCalls = message.getToolCalls();
 
@@ -197,7 +194,7 @@ public class DeepSeekChatService implements IChatService, ParameterConvert<DeepS
                     }
                     deepSeekChatCompletion.setMessages(messages);
 
-                }else{// 其他情况直接返回
+                } else {// 其他情况直接返回
 
                     // 设置包含tool的总token数
                     deepSeekChatCompletionResponse.setUsage(allUsage);
@@ -225,24 +222,21 @@ public class DeepSeekChatService implements IChatService, ParameterConvert<DeepS
     }
 
     @Override
-    public void chatCompletionStream(String baseUrl, String apiKey, String chatCompletionUrl, ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
-        if(baseUrl == null || "".equals(baseUrl)) baseUrl = deepSeekConfig.getApiHost();
-        if(apiKey == null || "".equals(apiKey)) apiKey = deepSeekConfig.getApiKey();
-        if(chatCompletionUrl == null || "".equals(chatCompletionUrl)) chatCompletionUrl = deepSeekConfig.getChatCompletionUrl();
+    public void chatCompletionStream(String apiUrl, String apiKey, ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
         chatCompletion.setStream(true);
 
         // 转换 请求参数
         DeepSeekChatCompletion deepSeekChatCompletion = this.convertChatCompletionObject(chatCompletion);
 
         // 如含有function，则添加tool
-        if(deepSeekChatCompletion.getFunctions()!=null && !deepSeekChatCompletion.getFunctions().isEmpty()){
+        if (deepSeekChatCompletion.getFunctions() != null && !deepSeekChatCompletion.getFunctions().isEmpty()) {
             List<Tool> tools = ToolUtil.getAllFunctionTools(deepSeekChatCompletion.getFunctions());
             deepSeekChatCompletion.setTools(tools);
         }
 
         String finishReason = "first";
 
-        while("first".equals(finishReason) || "tool_calls".equals(finishReason)){
+        while ("first".equals(finishReason) || "tool_calls".equals(finishReason)) {
 
             finishReason = null;
             ObjectMapper mapper = new ObjectMapper();
@@ -250,7 +244,7 @@ public class DeepSeekChatService implements IChatService, ParameterConvert<DeepS
 
             Request request = new Request.Builder()
                     .header("Authorization", "Bearer " + apiKey)
-                    .url(ValidateUtil.concatUrl(baseUrl, chatCompletionUrl))
+                    .url(apiUrl)
                     .post(RequestBody.create(MediaType.parse(Constants.APPLICATION_JSON), jsonString))
                     .build();
 
@@ -262,7 +256,7 @@ public class DeepSeekChatService implements IChatService, ParameterConvert<DeepS
             List<ToolCall> toolCalls = eventSourceListener.getToolCalls();
 
             // 需要调用函数
-            if("tool_calls".equals(finishReason) && !toolCalls.isEmpty()){
+            if ("tool_calls".equals(finishReason) && !toolCalls.isEmpty()) {
                 // 创建tool响应消息
                 ChatMessage responseMessage = ChatMessage.withAssistant(eventSourceListener.getToolCalls());
 
@@ -287,6 +281,14 @@ public class DeepSeekChatService implements IChatService, ParameterConvert<DeepS
         // 补全原始请求
         chatCompletion.setMessages(deepSeekChatCompletion.getMessages());
         chatCompletion.setTools(deepSeekChatCompletion.getTools());
+    }
+
+    @Override
+    public void chatCompletionStream(String baseUrl, String apiKey, String chatCompletionUrl, ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
+        if(baseUrl == null || "".equals(baseUrl)) baseUrl = deepSeekConfig.getApiHost();
+        if(apiKey == null || "".equals(apiKey)) apiKey = deepSeekConfig.getApiKey();
+        if(chatCompletionUrl == null || "".equals(chatCompletionUrl)) chatCompletionUrl = deepSeekConfig.getChatCompletionUrl();
+        this.chatCompletionStream(ValidateUtil.concatUrl(baseUrl, chatCompletionUrl), apiKey, chatCompletion, eventSourceListener);
     }
 
     @Override

@@ -226,6 +226,17 @@ public class MoonshotChatService implements IChatService, ParameterConvert<Moons
         if(baseUrl == null || "".equals(baseUrl)) baseUrl = moonshotConfig.getApiHost();
         if(apiKey == null || "".equals(apiKey)) apiKey = moonshotConfig.getApiKey();
         if(chatCompletionUrl == null || "".equals(chatCompletionUrl)) chatCompletionUrl = moonshotConfig.getChatCompletionUrl();
+        this.chatCompletionStream(ValidateUtil.concatUrl(baseUrl, chatCompletionUrl), apiKey, chatCompletion, eventSourceListener);
+    }
+
+    @Override
+    public void chatCompletionStream(ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
+        this.chatCompletionStream(null, null, null, chatCompletion, eventSourceListener);
+    }
+
+    @Override
+    public void chatCompletionStream(String apiUrl, String apiKey, ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
+
         chatCompletion.setStream(true);
 
         // 转换 请求参数
@@ -246,7 +257,7 @@ public class MoonshotChatService implements IChatService, ParameterConvert<Moons
 
             Request request = new Request.Builder()
                     .header("Authorization", "Bearer " + apiKey)
-                    .url(ValidateUtil.concatUrl(baseUrl, chatCompletionUrl))
+                    .url(apiUrl)
                     .post(RequestBody.create(MediaType.parse(Constants.APPLICATION_JSON), jsonString))
                     .build();
 
@@ -283,10 +294,5 @@ public class MoonshotChatService implements IChatService, ParameterConvert<Moons
         // 补全原始请求
         chatCompletion.setMessages(moonshotChatCompletion.getMessages());
         chatCompletion.setTools(moonshotChatCompletion.getTools());
-    }
-
-    @Override
-    public void chatCompletionStream(ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
-        this.chatCompletionStream(null, null, null, chatCompletion, eventSourceListener);
     }
 }

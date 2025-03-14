@@ -218,6 +218,16 @@ public class MinimaxChatService implements IChatService, ParameterConvert<Minima
         if(baseUrl == null || "".equals(baseUrl)) baseUrl = minimaxConfig.getApiHost();
         if(apiKey == null || "".equals(apiKey)) apiKey = minimaxConfig.getApiKey();
         if(chatCompletionUrl == null || "".equals(chatCompletionUrl)) chatCompletionUrl = minimaxConfig.getChatCompletionUrl();
+        this.chatCompletionStream(ValidateUtil.concatUrl(baseUrl, chatCompletionUrl), apiKey, chatCompletion, eventSourceListener);
+    }
+
+    @Override
+    public void chatCompletionStream(ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
+        this.chatCompletionStream(null, null, null, chatCompletion, eventSourceListener);
+    }
+
+    @Override
+    public void chatCompletionStream(String apiUrl, String apiKey, ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
         chatCompletion.setStream(true);
 
         // 转换 请求参数
@@ -239,7 +249,7 @@ public class MinimaxChatService implements IChatService, ParameterConvert<Minima
 
             Request request = new Request.Builder()
                     .header("Authorization", "Bearer " + apiKey)
-                    .url(ValidateUtil.concatUrl(baseUrl, chatCompletionUrl))
+                    .url(apiUrl)
                     .post(RequestBody.create(MediaType.parse(Constants.APPLICATION_JSON), jsonString))
                     .build();
 
@@ -276,10 +286,5 @@ public class MinimaxChatService implements IChatService, ParameterConvert<Minima
         // 补全原始请求
         chatCompletion.setMessages(minimaxChatCompletion.getMessages());
         chatCompletion.setTools(minimaxChatCompletion.getTools());
-    }
-
-    @Override
-    public void chatCompletionStream(ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
-        this.chatCompletionStream(null, null, null, chatCompletion, eventSourceListener);
     }
 }

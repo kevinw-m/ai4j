@@ -142,67 +142,16 @@ public class BaichuanChatService implements IChatService, ParameterConvert<Baich
 
     @Override
     public void chatCompletionStream(String baseUrl, String apiKey, String chatCompletionUrl, ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
-        if(baseUrl == null || "".equals(baseUrl)) baseUrl = baichuanConfig.getApiHost();
-        if(apiKey == null || "".equals(apiKey)) apiKey = baichuanConfig.getApiKey();
-        if(chatCompletionUrl == null || "".equals(chatCompletionUrl)) chatCompletionUrl = baichuanConfig.getChatCompletionUrl();
-        chatCompletion.setStream(true);
-
-        // 转换 请求参数
-        BaichuanChatCompletion baichuanChatCompletion = this.convertChatCompletionObject(chatCompletion);
-
-        // 如含有function，则添加tool
-        if(baichuanChatCompletion.getFunctions()!=null && !baichuanChatCompletion.getFunctions().isEmpty()){
-            List<Tool> tools = ToolUtil.getAllFunctionTools(baichuanChatCompletion.getFunctions());
-            baichuanChatCompletion.setTools(tools);
+        if (baseUrl == null || baseUrl.isEmpty()) {
+            baseUrl = baichuanConfig.getApiHost();
         }
-
-        String finishReason = "first";
-
-        while("first".equals(finishReason) || "tool_calls".equals(finishReason)){
-
-            finishReason = null;
-            ObjectMapper mapper = new ObjectMapper();
-            String jsonString = mapper.writeValueAsString(baichuanChatCompletion);
-
-            Request request = new Request.Builder()
-                    .header("Authorization", "Bearer " + apiKey)
-                    .url(ValidateUtil.concatUrl(baseUrl, chatCompletionUrl))
-                    .post(RequestBody.create(MediaType.parse(Constants.APPLICATION_JSON), jsonString))
-                    .build();
-
-
-            factory.newEventSource(request, convertEventSource(eventSourceListener));
-            eventSourceListener.getCountDownLatch().await();
-
-            finishReason = eventSourceListener.getFinishReason();
-            List<ToolCall> toolCalls = eventSourceListener.getToolCalls();
-
-            // 需要调用函数
-            if("tool_calls".equals(finishReason) && !toolCalls.isEmpty()){
-                // 创建tool响应消息
-                ChatMessage responseMessage = ChatMessage.withAssistant(eventSourceListener.getToolCalls());
-
-                List<ChatMessage> messages = new ArrayList<>(baichuanChatCompletion.getMessages());
-                messages.add(responseMessage);
-
-                // 封装tool结果消息
-                for (ToolCall toolCall : toolCalls) {
-                    String functionName = toolCall.getFunction().getName();
-                    String arguments = toolCall.getFunction().getArguments();
-                    String functionResponse = ToolUtil.invoke(functionName, arguments);
-
-                    messages.add(ChatMessage.withTool(functionResponse, toolCall.getId()));
-                }
-                eventSourceListener.setToolCalls(new ArrayList<>());
-                eventSourceListener.setToolCall(null);
-                baichuanChatCompletion.setMessages(messages);
-            }
-
+        if (apiKey == null || apiKey.isEmpty()) {
+            apiKey = baichuanConfig.getApiKey();
         }
-
-        // 补全原始请求
-        chatCompletion.setMessages(baichuanChatCompletion.getMessages());
-        chatCompletion.setTools(baichuanChatCompletion.getTools());
+        if (chatCompletionUrl == null || chatCompletionUrl.isEmpty()) {
+            chatCompletionUrl = baichuanConfig.getChatCompletionUrl();
+        }
+        this.chatCompletionStream(ValidateUtil.concatUrl(baseUrl, chatCompletionUrl), apiKey, chatCompletion, eventSourceListener);
     }
 
     @Override
@@ -281,5 +230,67 @@ public class BaichuanChatService implements IChatService, ParameterConvert<Baich
         chatCompletionResponse.setChoices(zhipuChatCompletionResponse.getChoices());
         chatCompletionResponse.setUsage(zhipuChatCompletionResponse.getUsage());
         return chatCompletionResponse;
+    }
+
+    @Override
+    public void chatCompletionStream(String apiUrl, String apiKey, ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
+        chatCompletion.setStream(true);
+
+        // 转换 请求参数
+        BaichuanChatCompletion baichuanChatCompletion = this.convertChatCompletionObject(chatCompletion);
+
+        // 如含有function，则添加tool
+        if(baichuanChatCompletion.getFunctions()!=null && !baichuanChatCompletion.getFunctions().isEmpty()){
+            List<Tool> tools = ToolUtil.getAllFunctionTools(baichuanChatCompletion.getFunctions());
+            baichuanChatCompletion.setTools(tools);
+        }
+
+        String finishReason = "first";
+
+        while("first".equals(finishReason) || "tool_calls".equals(finishReason)){
+
+            finishReason = null;
+            ObjectMapper mapper = new ObjectMapper();
+            String jsonString = mapper.writeValueAsString(baichuanChatCompletion);
+
+            Request request = new Request.Builder()
+                    .header("Authorization", "Bearer " + apiKey)
+                    .url(apiUrl)
+                    .post(RequestBody.create(MediaType.parse(Constants.APPLICATION_JSON), jsonString))
+                    .build();
+
+
+            factory.newEventSource(request, convertEventSource(eventSourceListener));
+            eventSourceListener.getCountDownLatch().await();
+
+            finishReason = eventSourceListener.getFinishReason();
+            List<ToolCall> toolCalls = eventSourceListener.getToolCalls();
+
+            // 需要调用函数
+            if("tool_calls".equals(finishReason) && !toolCalls.isEmpty()){
+                // 创建tool响应消息
+                ChatMessage responseMessage = ChatMessage.withAssistant(eventSourceListener.getToolCalls());
+
+                List<ChatMessage> messages = new ArrayList<>(baichuanChatCompletion.getMessages());
+                messages.add(responseMessage);
+
+                // 封装tool结果消息
+                for (ToolCall toolCall : toolCalls) {
+                    String functionName = toolCall.getFunction().getName();
+                    String arguments = toolCall.getFunction().getArguments();
+                    String functionResponse = ToolUtil.invoke(functionName, arguments);
+
+                    messages.add(ChatMessage.withTool(functionResponse, toolCall.getId()));
+                }
+                eventSourceListener.setToolCalls(new ArrayList<>());
+                eventSourceListener.setToolCall(null);
+                baichuanChatCompletion.setMessages(messages);
+            }
+
+        }
+
+        // 补全原始请求
+        chatCompletion.setMessages(baichuanChatCompletion.getMessages());
+        chatCompletion.setTools(baichuanChatCompletion.getTools());
     }
 }

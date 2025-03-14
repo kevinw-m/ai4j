@@ -215,6 +215,16 @@ public class LingyiChatService implements IChatService, ParameterConvert<LingyiC
         if(baseUrl == null || "".equals(baseUrl)) baseUrl = lingyiConfig.getApiHost();
         if(apiKey == null || "".equals(apiKey)) apiKey = lingyiConfig.getApiKey();
         if(chatCompletionUrl == null || "".equals(chatCompletionUrl)) chatCompletionUrl = lingyiConfig.getChatCompletionUrl();
+        this.chatCompletionStream(ValidateUtil.concatUrl(baseUrl, chatCompletionUrl), apiKey, chatCompletion, eventSourceListener);
+    }
+
+    @Override
+    public void chatCompletionStream(ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
+        this.chatCompletionStream(null, null, null, chatCompletion, eventSourceListener);
+    }
+
+    @Override
+    public void chatCompletionStream(String apiUrl, String apiKey, ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
         chatCompletion.setStream(true);
 
         // 转换 请求参数
@@ -236,7 +246,7 @@ public class LingyiChatService implements IChatService, ParameterConvert<LingyiC
 
             Request request = new Request.Builder()
                     .header("Authorization", "Bearer " + apiKey)
-                    .url(ValidateUtil.concatUrl(baseUrl, chatCompletionUrl))
+                    .url(apiUrl)
                     .post(RequestBody.create(MediaType.parse(Constants.APPLICATION_JSON), jsonString))
                     .build();
 
@@ -273,10 +283,5 @@ public class LingyiChatService implements IChatService, ParameterConvert<LingyiC
         // 补全原始请求
         chatCompletion.setMessages(lingyiChatCompletion.getMessages());
         chatCompletion.setTools(lingyiChatCompletion.getTools());
-    }
-
-    @Override
-    public void chatCompletionStream(ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
-        this.chatCompletionStream(null, null, null, chatCompletion, eventSourceListener);
     }
 }

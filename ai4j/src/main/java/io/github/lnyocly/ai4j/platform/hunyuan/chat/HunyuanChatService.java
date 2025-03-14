@@ -97,18 +97,18 @@ public class HunyuanChatService implements IChatService, ParameterConvert<Hunyua
                 response.setObject("chat.completion.chunk");
 
                 Choice choice = response.getChoices().get(0);
-                if(eventSourceListener.getToolCall()!=null){
-                    if(choice.getDelta().getToolCalls()!=null){
+                if (eventSourceListener.getToolCall() != null) {
+                    if (choice.getDelta().getToolCalls() != null) {
                         choice.getDelta().getToolCalls().get(0).setId(null);
                     }
                 }
 
-                if(StringUtils.isBlank(choice.getFinishReason())){
+                if (StringUtils.isBlank(choice.getFinishReason())) {
                     response.setUsage(null);
                 }
 
 
-                if("tool_calls".equals(choice.getFinishReason())){
+                if ("tool_calls".equals(choice.getFinishReason())) {
                     //eventSourceListener.setToolCall(null);
                     //this.onClosed(eventSource);
                 }
@@ -137,15 +137,15 @@ public class HunyuanChatService implements IChatService, ParameterConvert<Hunyua
 
     @Override
     public ChatCompletionResponse chatCompletion(String baseUrl, String apiKey, ChatCompletion chatCompletion) throws Exception {
-        if(baseUrl == null || "".equals(baseUrl)) baseUrl = hunyuanConfig.getApiHost();
-        if(apiKey == null || "".equals(apiKey)) apiKey = hunyuanConfig.getApiKey();
+        if (baseUrl == null || "".equals(baseUrl)) baseUrl = hunyuanConfig.getApiHost();
+        if (apiKey == null || "".equals(apiKey)) apiKey = hunyuanConfig.getApiKey();
         chatCompletion.setStream(false);
 
         // 转换 请求参数
         HunyuanChatCompletion hunyuanChatCompletion = this.convertChatCompletionObject(chatCompletion);
 
         // 如含有function，则添加tool
-        if(hunyuanChatCompletion.getFunctions()!=null && !hunyuanChatCompletion.getFunctions().isEmpty()){
+        if (hunyuanChatCompletion.getFunctions() != null && !hunyuanChatCompletion.getFunctions().isEmpty()) {
             List<Tool> tools = ToolUtil.getAllFunctionTools(hunyuanChatCompletion.getFunctions());
             hunyuanChatCompletion.setTools(tools);
         }
@@ -155,7 +155,7 @@ public class HunyuanChatService implements IChatService, ParameterConvert<Hunyua
 
         String finishReason = "first";
 
-        while("first".equals(finishReason) || "tool_calls".equals(finishReason)){
+        while ("first".equals(finishReason) || "tool_calls".equals(finishReason)) {
 
             finishReason = null;
 
@@ -167,7 +167,7 @@ public class HunyuanChatService implements IChatService, ParameterConvert<Hunyua
             JSONObject jsonObject = JSON.parseObject(requestString);
             // 获取 Tools 数组
             JSONArray toolsArray = jsonObject.getJSONArray("tools");
-            if(toolsArray!= null && !toolsArray.isEmpty()){
+            if (toolsArray != null && !toolsArray.isEmpty()) {
                 // 遍历并修改 Tools 中的每个对象
                 for (int i = 0; i < toolsArray.size(); i++) {
                     JSONObject tool = toolsArray.getJSONObject(i);
@@ -190,18 +190,18 @@ public class HunyuanChatService implements IChatService, ParameterConvert<Hunyua
              * Messages 中 Contents 字段仅 hunyuan-vision 模型支持
              * hunyuan模型，识图多模态类只能放在Contents字段
              */
-            if("hunyuan-vision".equals(chatCompletion.getModel())){
+            if ("hunyuan-vision".equals(chatCompletion.getModel())) {
                 // 获取所有的content字段
                 JSONArray messagesArray = jsonObject.getJSONArray("messages");
-                if(messagesArray!= null && !messagesArray.isEmpty()){
+                if (messagesArray != null && !messagesArray.isEmpty()) {
                     for (int i = 0; i < messagesArray.size(); i++) {
                         JSONObject message = messagesArray.getJSONObject(i);
                         // 获取当前message的content字段
                         String content = message.getString("content");
                         // 将content内容，判断是否可以转换为ChatMessage.MultiModal类型
-                        if(content!=null && content.startsWith("[") && content.endsWith("]")) {
+                        if (content != null && content.startsWith("[") && content.endsWith("]")) {
                             List<Content.MultiModal> multiModals = JSON.parseArray(content, Content.MultiModal.class);
-                            if(multiModals!=null && !multiModals.isEmpty()){
+                            if (multiModals != null && !multiModals.isEmpty()) {
                                 // 将当前的content转换为contents
                                 message.put("contents", multiModals);
                                 // 删除原来的content key
@@ -215,7 +215,7 @@ public class HunyuanChatService implements IChatService, ParameterConvert<Hunyua
             // 将修改后的 JSON 对象转为字符串
             requestString = jsonObject.toJSONString();
             requestString = JsonObjectUtil.toCamelCaseWithUppercaseJson(requestString);
-            String authorization = BearerTokenUtils.getAuthorization(apiKey,HunyuanConstant.ChatCompletions,requestString);
+            String authorization = BearerTokenUtils.getAuthorization(apiKey, HunyuanConstant.ChatCompletions, requestString);
 
             Request request = new Request.Builder()
                     .header("Authorization", authorization)
@@ -227,7 +227,7 @@ public class HunyuanChatService implements IChatService, ParameterConvert<Hunyua
                     .build();
 
             Response execute = okHttpClient.newCall(request).execute();
-            if (execute.isSuccessful() && execute.body() != null){
+            if (execute.isSuccessful() && execute.body() != null) {
                 String responseString = execute.body().string();
                 responseString = JsonObjectUtil.toSnakeCaseJson(responseString);
                 responseString = JSON.parseObject(responseString).get("response").toString();
@@ -243,7 +243,7 @@ public class HunyuanChatService implements IChatService, ParameterConvert<Hunyua
                 allUsage.setPromptTokens(allUsage.getPromptTokens() + usage.getPromptTokens());
 
                 // 判断是否为函数调用返回
-                if("tool_calls".equals(finishReason)){
+                if ("tool_calls".equals(finishReason)) {
                     ChatMessage message = choice.getMessage();
                     List<ToolCall> toolCalls = message.getToolCalls();
 
@@ -260,7 +260,7 @@ public class HunyuanChatService implements IChatService, ParameterConvert<Hunyua
                     }
                     hunyuanChatCompletion.setMessages(messages);
 
-                }else{// 其他情况直接返回
+                } else {// 其他情况直接返回
 
                     // 设置包含tool的总token数
                     hunyuanChatCompletionResponse.setUsage(allUsage);
@@ -280,7 +280,6 @@ public class HunyuanChatService implements IChatService, ParameterConvert<Hunyua
         }
 
 
-
         return null;
     }
 
@@ -291,22 +290,32 @@ public class HunyuanChatService implements IChatService, ParameterConvert<Hunyua
 
     @Override
     public void chatCompletionStream(String baseUrl, String apiKey, String chatCompletionUrl, ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
-        if(baseUrl == null || "".equals(baseUrl)) baseUrl = hunyuanConfig.getApiHost();
-        if(apiKey == null || "".equals(apiKey)) apiKey = hunyuanConfig.getApiKey();
+        if (baseUrl == null || "".equals(baseUrl)) baseUrl = hunyuanConfig.getApiHost();
+        if (apiKey == null || "".equals(apiKey)) apiKey = hunyuanConfig.getApiKey();
+        this.chatCompletionStream(baseUrl, apiKey, chatCompletion, eventSourceListener);
+    }
+
+    @Override
+    public void chatCompletionStream(ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
+        this.chatCompletionStream(null, null, null, chatCompletion, eventSourceListener);
+    }
+
+    @Override
+    public void chatCompletionStream(String apiUrl, String apiKey, ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
         chatCompletion.setStream(true);
 
         // 转换 请求参数
         HunyuanChatCompletion hunyuanChatCompletion = this.convertChatCompletionObject(chatCompletion);
 
         // 如含有function，则添加tool
-        if(hunyuanChatCompletion.getFunctions()!=null && !hunyuanChatCompletion.getFunctions().isEmpty()){
+        if (hunyuanChatCompletion.getFunctions() != null && !hunyuanChatCompletion.getFunctions().isEmpty()) {
             List<Tool> tools = ToolUtil.getAllFunctionTools(hunyuanChatCompletion.getFunctions());
             hunyuanChatCompletion.setTools(tools);
         }
 
         String finishReason = "first";
 
-        while("first".equals(finishReason) || "tool_calls".equals(finishReason)){
+        while ("first".equals(finishReason) || "tool_calls".equals(finishReason)) {
 
             finishReason = null;
 
@@ -318,7 +327,7 @@ public class HunyuanChatService implements IChatService, ParameterConvert<Hunyua
             JSONObject jsonObject = JSON.parseObject(requestString);
             // 获取 Tools 数组
             JSONArray toolsArray = jsonObject.getJSONArray("tools");
-            if(toolsArray!= null && !toolsArray.isEmpty()){
+            if (toolsArray != null && !toolsArray.isEmpty()) {
                 // 遍历并修改 Tools 中的每个对象
                 for (int i = 0; i < toolsArray.size(); i++) {
                     JSONObject tool = toolsArray.getJSONObject(i);
@@ -341,18 +350,18 @@ public class HunyuanChatService implements IChatService, ParameterConvert<Hunyua
              * Messages 中 Contents 字段仅 hunyuan-vision 模型支持
              * hunyuan模型，识图多模态类只能放在Contents字段
              */
-            if("hunyuan-vision".equals(chatCompletion.getModel())){
+            if ("hunyuan-vision".equals(chatCompletion.getModel())) {
                 // 获取所有的content字段
                 JSONArray messagesArray = jsonObject.getJSONArray("messages");
-                if(messagesArray!= null && !messagesArray.isEmpty()){
+                if (messagesArray != null && !messagesArray.isEmpty()) {
                     for (int i = 0; i < messagesArray.size(); i++) {
                         JSONObject message = messagesArray.getJSONObject(i);
                         // 获取当前message的content字段
                         String content = message.getString("content");
                         // 将content内容，判断是否可以转换为ChatMessage.MultiModal类型
-                        if(content!=null && content.startsWith("[") && content.endsWith("]")) {
+                        if (content != null && content.startsWith("[") && content.endsWith("]")) {
                             List<Content.MultiModal> multiModals = JSON.parseArray(content, Content.MultiModal.class);
-                            if(multiModals!=null && !multiModals.isEmpty()){
+                            if (multiModals != null && !multiModals.isEmpty()) {
                                 // 将当前的content转换为contents
                                 message.put("contents", multiModals);
                                 // 删除原来的content key
@@ -366,7 +375,7 @@ public class HunyuanChatService implements IChatService, ParameterConvert<Hunyua
             // 将修改后的 JSON 对象转为字符串
             requestString = jsonObject.toJSONString();
             requestString = JsonObjectUtil.toCamelCaseWithUppercaseJson(requestString);
-            String authorization = BearerTokenUtils.getAuthorization(apiKey,HunyuanConstant.ChatCompletions,requestString);
+            String authorization = BearerTokenUtils.getAuthorization(apiKey, HunyuanConstant.ChatCompletions, requestString);
 
             Request request = new Request.Builder()
                     .header("Authorization", authorization)
@@ -374,7 +383,7 @@ public class HunyuanChatService implements IChatService, ParameterConvert<Hunyua
                     .header("X-TC-Version", HunyuanConstant.Version)
                     .header("X-TC-Timestamp", String.valueOf(System.currentTimeMillis() / 1000))
                     .header("Accept", Constants.SSE_CONTENT_TYPE)
-                    .url(baseUrl)
+                    .url(apiUrl)
                     .post(RequestBody.create(MediaType.parse(Constants.APPLICATION_JSON), requestString))
                     .build();
 
@@ -385,7 +394,7 @@ public class HunyuanChatService implements IChatService, ParameterConvert<Hunyua
             List<ToolCall> toolCalls = eventSourceListener.getToolCalls();
 
             // 需要调用函数
-            if("tool_calls".equals(finishReason) && !toolCalls.isEmpty()){
+            if ("tool_calls".equals(finishReason) && !toolCalls.isEmpty()) {
                 // 创建tool响应消息
                 ChatMessage responseMessage = ChatMessage.withAssistant(eventSourceListener.getToolCalls());
                 responseMessage.setContent(Content.ofText(" "));
@@ -411,10 +420,5 @@ public class HunyuanChatService implements IChatService, ParameterConvert<Hunyua
         // 补全原始请求
         chatCompletion.setMessages(hunyuanChatCompletion.getMessages());
         chatCompletion.setTools(hunyuanChatCompletion.getTools());
-    }
-
-    @Override
-    public void chatCompletionStream(ChatCompletion chatCompletion, SseListener eventSourceListener) throws Exception {
-        this.chatCompletionStream(null, null, null, chatCompletion, eventSourceListener);
     }
 }
