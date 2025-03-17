@@ -53,8 +53,8 @@ public class ZhipuChatService implements IChatService, ParameterConvert<ZhipuCha
 
 
     @Override
-    public ChatCompletionResponse chatCompletion(String baseUrl, String apiKey, ChatCompletion chatCompletion) throws Exception {
-        if(baseUrl == null || "".equals(baseUrl)) baseUrl = zhipuConfig.getApiHost();
+    public ChatCompletionResponse chatCompletion(String apiUrl, String apiKey, ChatCompletion chatCompletion) throws Exception {
+        if (apiUrl == null || "".equals(apiUrl)) apiUrl = ValidateUtil.concatUrl(zhipuConfig.getApiHost(), zhipuConfig.getChatCompletionUrl());
         if(apiKey == null || "".equals(apiKey)) apiKey = zhipuConfig.getApiKey();
         chatCompletion.setStream(false);
         chatCompletion.setStreamOptions(null);
@@ -86,7 +86,7 @@ public class ZhipuChatService implements IChatService, ParameterConvert<ZhipuCha
 
             Request request = new Request.Builder()
                     .header("Authorization", "Bearer " + token)
-                    .url(ValidateUtil.concatUrl(baseUrl, zhipuConfig.getChatCompletionUrl()))
+                    .url(apiUrl)
                     .post(RequestBody.create(MediaType.parse(Constants.JSON_CONTENT_TYPE), requestString))
                     .build();
 

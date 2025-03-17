@@ -122,8 +122,8 @@ public class MinimaxChatService implements IChatService, ParameterConvert<Minima
     }
 
     @Override
-    public ChatCompletionResponse chatCompletion(String baseUrl, String apiKey, ChatCompletion chatCompletion) throws Exception {
-        if(baseUrl == null || "".equals(baseUrl)) baseUrl = minimaxConfig.getApiHost();
+    public ChatCompletionResponse chatCompletion(String apiUrl, String apiKey, ChatCompletion chatCompletion) throws Exception {
+        if (apiUrl == null || "".equals(apiUrl)) apiUrl = ValidateUtil.concatUrl(minimaxConfig.getApiHost(), minimaxConfig.getChatCompletionUrl());
         if(apiKey == null || "".equals(apiKey)) apiKey = minimaxConfig.getApiKey();
         chatCompletion.setStream(false);
         chatCompletion.setStreamOptions(null);
@@ -152,7 +152,7 @@ public class MinimaxChatService implements IChatService, ParameterConvert<Minima
 
             Request request = new Request.Builder()
                     .header("Authorization", "Bearer " + apiKey)
-                    .url(ValidateUtil.concatUrl(baseUrl, minimaxConfig.getChatCompletionUrl()))
+                    .url(apiUrl)
                     .post(RequestBody.create(MediaType.parse(Constants.JSON_CONTENT_TYPE), requestString))
                     .build();
 

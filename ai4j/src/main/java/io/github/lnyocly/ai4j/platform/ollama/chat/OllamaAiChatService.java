@@ -210,8 +210,8 @@ public class OllamaAiChatService implements IChatService, ParameterConvert<Ollam
     }
 
     @Override
-    public ChatCompletionResponse chatCompletion(String baseUrl, String apiKey, ChatCompletion chatCompletion) throws Exception {
-        if(baseUrl == null || "".equals(baseUrl)) baseUrl = ollamaConfig.getApiHost();
+    public ChatCompletionResponse chatCompletion(String apiUrl, String apiKey, ChatCompletion chatCompletion) throws Exception {
+        if (apiUrl == null || "".equals(apiUrl)) apiUrl = ValidateUtil.concatUrl(ollamaConfig.getApiHost(), ollamaConfig.getChatCompletionUrl());
         if(apiKey == null || "".equals(apiKey)) apiKey = ollamaConfig.getApiKey();
         chatCompletion.setStream(false);
         chatCompletion.setStreamOptions(null);
@@ -259,7 +259,7 @@ public class OllamaAiChatService implements IChatService, ParameterConvert<Ollam
 
 
             Request.Builder builder = new Request.Builder()
-                    .url(ValidateUtil.concatUrl(baseUrl, ollamaConfig.getChatCompletionUrl()))
+                    .url(apiUrl)
                     .post(RequestBody.create(MediaType.parse(Constants.JSON_CONTENT_TYPE), requestString));
 
             if(StringUtils.isNotBlank(apiKey)) {

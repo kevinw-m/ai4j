@@ -23,6 +23,7 @@ import io.github.lnyocly.ai4j.service.IChatService;
 import io.github.lnyocly.ai4j.utils.BearerTokenUtils;
 import io.github.lnyocly.ai4j.utils.JsonObjectUtil;
 import io.github.lnyocly.ai4j.utils.ToolUtil;
+import io.github.lnyocly.ai4j.utils.ValidateUtil;
 import okhttp3.*;
 import okhttp3.sse.EventSource;
 import okhttp3.sse.EventSourceListener;
@@ -136,8 +137,8 @@ public class HunyuanChatService implements IChatService, ParameterConvert<Hunyua
     }
 
     @Override
-    public ChatCompletionResponse chatCompletion(String baseUrl, String apiKey, ChatCompletion chatCompletion) throws Exception {
-        if (baseUrl == null || "".equals(baseUrl)) baseUrl = hunyuanConfig.getApiHost();
+    public ChatCompletionResponse chatCompletion(String apiUrl, String apiKey, ChatCompletion chatCompletion) throws Exception {
+        if (apiUrl == null || "".equals(apiUrl)) apiUrl = hunyuanConfig.getApiHost();
         if (apiKey == null || "".equals(apiKey)) apiKey = hunyuanConfig.getApiKey();
         chatCompletion.setStream(false);
 
@@ -222,7 +223,7 @@ public class HunyuanChatService implements IChatService, ParameterConvert<Hunyua
                     .header("X-TC-Action", HunyuanConstant.ChatCompletions)
                     .header("X-TC-Version", HunyuanConstant.Version)
                     .header("X-TC-Timestamp", String.valueOf(System.currentTimeMillis() / 1000))
-                    .url(baseUrl)
+                    .url(apiUrl)
                     .post(RequestBody.create(MediaType.parse(Constants.JSON_CONTENT_TYPE), requestString))
                     .build();
 

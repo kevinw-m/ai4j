@@ -127,8 +127,8 @@ public class DeepSeekChatService implements IChatService, ParameterConvert<DeepS
     }
 
     @Override
-    public ChatCompletionResponse chatCompletion(String baseUrl, String apiKey, ChatCompletion chatCompletion) throws Exception {
-        if (baseUrl == null || "".equals(baseUrl)) baseUrl = deepSeekConfig.getApiHost();
+    public ChatCompletionResponse chatCompletion(String apiUrl, String apiKey, ChatCompletion chatCompletion) throws Exception {
+        if (apiUrl == null || "".equals(apiUrl)) apiUrl = ValidateUtil.concatUrl(deepSeekConfig.getApiHost(), deepSeekConfig.getChatCompletionUrl());
         if (apiKey == null || "".equals(apiKey)) apiKey = deepSeekConfig.getApiKey();
         chatCompletion.setStream(false);
         chatCompletion.setStreamOptions(null);
@@ -159,7 +159,7 @@ public class DeepSeekChatService implements IChatService, ParameterConvert<DeepS
 
             Request request = new Request.Builder()
                     .header("Authorization", "Bearer " + apiKey)
-                    .url(ValidateUtil.concatUrl(baseUrl, deepSeekConfig.getChatCompletionUrl()))
+                    .url(apiUrl)
                     .post(RequestBody.create(MediaType.parse(Constants.JSON_CONTENT_TYPE), requestString))
                     .build();
 

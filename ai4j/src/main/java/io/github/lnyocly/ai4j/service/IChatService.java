@@ -14,7 +14,7 @@ import okhttp3.sse.EventSourceListener;
  */
 public interface IChatService {
 
-    ChatCompletionResponse chatCompletion(String baseUrl, String apiKey, ChatCompletion chatCompletion) throws Exception;
+    ChatCompletionResponse chatCompletion(String apiUrl, String apiKey, ChatCompletion chatCompletion) throws Exception;
 
     ChatCompletionResponse chatCompletion(ChatCompletion chatCompletion) throws Exception;
 

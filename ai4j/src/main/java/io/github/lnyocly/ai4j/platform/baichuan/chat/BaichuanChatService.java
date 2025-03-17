@@ -51,8 +51,8 @@ public class BaichuanChatService implements IChatService, ParameterConvert<Baich
 
 
     @Override
-    public ChatCompletionResponse chatCompletion(String baseUrl, String apiKey, ChatCompletion chatCompletion) throws Exception {
-        if(baseUrl == null || "".equals(baseUrl)) baseUrl = baichuanConfig.getApiHost();
+    public ChatCompletionResponse chatCompletion(String apiUrl, String apiKey, ChatCompletion chatCompletion) throws Exception {
+        if (apiUrl == null || "".equals(apiUrl)) apiUrl = ValidateUtil.concatUrl(baichuanConfig.getApiHost(), baichuanConfig.getChatCompletionUrl());
         if(apiKey == null || "".equals(apiKey)) apiKey = baichuanConfig.getApiKey();
         chatCompletion.setStream(false);
         chatCompletion.setStreamOptions(null);
@@ -81,7 +81,7 @@ public class BaichuanChatService implements IChatService, ParameterConvert<Baich
 
             Request request = new Request.Builder()
                     .header("Authorization", "Bearer " + apiKey)
-                    .url(ValidateUtil.concatUrl(baseUrl, baichuanConfig.getChatCompletionUrl()))
+                    .url(apiUrl)
                     .post(RequestBody.create(MediaType.parse(Constants.JSON_CONTENT_TYPE), requestString))
                     .build();
 

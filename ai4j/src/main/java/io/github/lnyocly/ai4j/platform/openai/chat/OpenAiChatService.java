@@ -40,8 +40,8 @@ public class OpenAiChatService implements IChatService {
 
 
     @Override
-    public ChatCompletionResponse chatCompletion(String baseUrl, String apiKey, ChatCompletion chatCompletion)  throws Exception {
-        if(baseUrl == null || "".equals(baseUrl)) baseUrl = openAiConfig.getApiHost();
+    public ChatCompletionResponse chatCompletion(String apiUrl, String apiKey, ChatCompletion chatCompletion)  throws Exception {
+        if (apiUrl == null || "".equals(apiUrl)) apiUrl = ValidateUtil.concatUrl(openAiConfig.getApiHost(), openAiConfig.getChatCompletionUrl());
         if(apiKey == null || "".equals(apiKey)) apiKey = openAiConfig.getApiKey();
         chatCompletion.setStream(false);
         chatCompletion.setStreamOptions(null);
@@ -71,7 +71,7 @@ public class OpenAiChatService implements IChatService {
 
             Request request = new Request.Builder()
                     .header("Authorization", "Bearer " + apiKey)
-                    .url(ValidateUtil.concatUrl(baseUrl, openAiConfig.getChatCompletionUrl()))
+                    .url(apiUrl)
                     .post(RequestBody.create(MediaType.parse(Constants.JSON_CONTENT_TYPE), requestString))
                     .build();
 
