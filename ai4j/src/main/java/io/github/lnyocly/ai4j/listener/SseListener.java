@@ -34,6 +34,11 @@ import java.util.concurrent.CountDownLatch;
 
 @Slf4j
 public abstract class SseListener extends EventSourceListener {
+    /**
+     * 异常回调
+     */
+    protected void error(Throwable t, Response response) {}
+
     protected abstract void send();
     /**
      * 最终的消息输出
@@ -105,11 +110,10 @@ public abstract class SseListener extends EventSourceListener {
     @Getter
     private EventSource eventSource = null;
 
-    private boolean ollamaToolCall = false;
 
     @Override
     public void onFailure(@NotNull EventSource eventSource, @Nullable Throwable t, @Nullable Response response) {
-
+        this.error(t, response);
         countDownLatch.countDown();
     }
 
@@ -155,8 +159,11 @@ public abstract class SseListener extends EventSourceListener {
 
         finishReason = choices.get(0).getFinishReason();
 
-        if("stop".equals(finishReason) && ollamaToolCall == true){
-            ollamaToolCall = false;
+        // ollama 函数调用
+        if("stop".equals(finishReason)
+                && responseMessage.getContent()!=null
+                && "".equals(responseMessage.getContent().getText())
+                && !toolCalls.isEmpty()){
             finishReason = "tool_calls";
         }
 
@@ -186,10 +193,12 @@ public abstract class SseListener extends EventSourceListener {
             // ollama 最后一条消息只到stop
             if(responseMessage.getContent() != null && responseMessage.getContent().getText() != null) {
                 currStr = responseMessage.getContent().getText();
+                output.append(currStr);
             }else {
                 currStr = "";
             }
             this.send();
+
 
             return;
         }
@@ -206,44 +215,9 @@ public abstract class SseListener extends EventSourceListener {
         if(responseMessage.getToolCalls() == null ) {
 
 
-            // 判断是否为混元的tool最后一条说明性content
+            // 判断是否为混元的tool最后一条说明性content，用于忽略
             // :{"Role":"assistant","Content":"计划使用get_current_weather工具来获取北京和深圳的当前天气。\n\t\n\t用户想要知道北京和深圳今天的天气情况。用户的请求是关于天气的查询，需要使用天气查询工具来获取信息。"}
             if(toolCall !=null && StringUtils.isNotEmpty(argument)&& "assistant".equals(responseMessage.getRole()) && (responseMessage.getContent()!=null && StringUtils.isNotEmpty(responseMessage.getContent().getText())) ){
-                return;
-            }
-
-
-            if(responseMessage.getContent() != null && "<tool_call>".equals(responseMessage.getContent().getText())){
-                // ollama的tool_call
-                ollamaToolCall = true;
-                return;
-            }
-
-
-            if(ollamaToolCall){
-
-                /**
-                 * <tool_call>{"name": "queryWeather", "arguments": {"location": "洛阳", "days":1, "type": "daily"}}
-                 * </tool_call>
-                 */
-
-                if(responseMessage.getContent() != null && "</tool_call>".equals(responseMessage.getContent().getText())){
-                    // ollama的tool_call
-
-                    ToolCall.Function function = JSON.parseObject(argument.toString(), ToolCall.Function.class);
-                    toolCall = new ToolCall();
-                    toolCall.setFunction(function);
-                    currToolName = function.getName();
-                    argument.setLength(0);
-                    argument.append(function.getArguments());
-                    return;
-                }
-
-                argument.append(responseMessage.getContent().getText());
-                if(showToolArgs){
-                    this.currStr = responseMessage.getContent().getText();
-                    this.send();
-                }
                 return;
             }
 
@@ -272,28 +246,42 @@ public abstract class SseListener extends EventSourceListener {
         }else{
             // 函数调用回答
 
-            // 第一条ToolCall表示，不含参数信息
-            if(responseMessage.getToolCalls().get(0).getId() != null) {
-                if( toolCall == null ){
-                    // 第一个函数
-                    toolCall = responseMessage.getToolCalls().get(0);
-                }else {
-                    toolCall.getFunction().setArguments(argument.toString());
-                    argument.setLength(0);
-                    toolCalls.add(toolCall);
-                    toolCall = responseMessage.getToolCalls().get(0);
-                }
-
+            if(responseMessage.getContent()!=null
+               && "".equals(responseMessage.getContent().getText())){
+                // ollama的函数调用
                 currToolName = responseMessage.getToolCalls().get(0).getFunction().getName();
+                toolCalls.add(responseMessage.getToolCalls().get(0));
 
-
-            }else {
-                argument.append(responseMessage.getToolCalls().get(0).getFunction().getArguments());
                 if(showToolArgs){
                     this.currStr = responseMessage.getToolCalls().get(0).getFunction().getArguments();
                     this.send();
                 }
+            }else{
+                // 第一条ToolCall表示，不含参数信息
+                if(responseMessage.getToolCalls().get(0).getId() != null) {
+                    if( toolCall == null ){
+                        // 第一个函数
+                        toolCall = responseMessage.getToolCalls().get(0);
+                    }else {
+                        toolCall.getFunction().setArguments(argument.toString());
+                        argument.setLength(0);
+                        toolCalls.add(toolCall);
+                        toolCall = responseMessage.getToolCalls().get(0);
+                    }
+
+                    currToolName = responseMessage.getToolCalls().get(0).getFunction().getName();
+
+
+                }else {
+                    argument.append(responseMessage.getToolCalls().get(0).getFunction().getArguments());
+                    if(showToolArgs){
+                        this.currStr = responseMessage.getToolCalls().get(0).getFunction().getArguments();
+                        this.send();
+                    }
+                }
             }
+
+
 
 
         }
